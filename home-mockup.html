@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Homepage Mockup v3 — Plynt.space</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #F4F4F5;
+            color: #1a1a1a;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ══ NAVBAR ══ */
+        .navbar {
+            background: #fff;
+            border-bottom: 1px solid #E4E4E7;
+            padding: 0 20px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.6px;
+            color: #111;
+            flex-shrink: 0;
+            margin-right: 28px;
+        }
+
+        .logo span {
+            color: #2563EB;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .nav-link {
+            padding: 6px 14px;
+            border-radius: 7px;
+            font-size: 13.5px;
+            font-weight: 500;
+            color: #52525B;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            background: none;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .nav-link:hover {
+            background: #F4F4F5;
+            color: #111;
+        }
+
+        .nav-link.active {
+            background: #EFF6FF;
+            color: #2563EB;
+            font-weight: 600;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #F4F4F5;
+            border: 1px solid #E4E4E7;
+            border-radius: 8px;
+            padding: 7px 14px;
+            font-size: 13px;
+            color: #A1A1AA;
+            width: 210px;
+            cursor: text;
+            margin-right: 12px;
+        }
+
+        .btn-write {
+            background: #2563EB;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* ══ LAYOUT ══ */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ══ LEFT SIDEBAR — categories only ══ */
+        .sidebar-left {
+            width: 192px;
+            flex-shrink: 0;
+            background: #fff;
+            border-right: 1px solid #E4E4E7;
+            padding: 20px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            overflow-y: auto;
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #A1A1AA;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 6px 8px 8px;
+        }
+
+        .cat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #3F3F46;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .cat-item:hover {
+            background: #F4F4F5;
+            color: #111;
+        }
+
+        .cat-item.active {
+            background: #EFF6FF;
+            color: #2563EB;
+            font-weight: 600;
+        }
+
+        .cat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .cat-count {
+            margin-left: auto;
+            font-size: 11px;
+            color: #A1A1AA;
+        }
+
+        /* ══ CENTER FEED ══ */
+        .feed {
+            flex: 1;
+            overflow-y: auto;
+            background: #F4F4F5;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        /* Feed tabs — personalization, NOT nav duplication */
+        .feed-tabs {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            background: #fff;
+            border: 1px solid #E4E4E7;
+            border-radius: 10px;
+            padding: 4px;
+            flex-shrink: 0;
+            width: fit-content;
+        }
+
+        .tab {
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #71717A;
+            cursor: pointer;
+            border-radius: 7px;
+            transition: all 0.15s;
+        }
+
+        .tab.active {
+            background: #2563EB;
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .tab:not(.active):hover {
+            background: #F4F4F5;
+            color: #111;
+        }
+
+        /* ── HERO CARD ── */
+        .hero-card {
+            position: relative;
+            border-radius: 14px;
+            overflow: hidden;
+            height: 250px;
+            background: #18181B;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .hero-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .hero-card:hover img {
+            opacity: 0.5;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.15) 55%, transparent 100%);
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            margin-bottom: 9px;
+        }
+
+        .badge-featured {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #FDE68A;
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .badge-cat {
+            font-size: 10px;
+            font-weight: 600;
+            color: #93C5FD;
+            background: rgba(37, 99, 235, 0.2);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .hero-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.3;
+            letter-spacing: -0.3px;
+            margin-bottom: 8px;
+            max-width: 78%;
+        }
+
+        .hero-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-avatar {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .hero-meta-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .hero-meta-text strong {
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 500;
+        }
+
+        /* ── ARTICLE GRID ── */
+        .article-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .article-card {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #E4E4E7;
+            cursor: pointer;
+            transition: box-shadow 0.2s, transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .article-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.09);
+            transform: translateY(-2px);
+        }
+
+        /* Card with cover image */
+        .card-img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Card WITHOUT image — neutral, brand-safe header */
+        .card-no-image-header {
+            width: 100%;
+            height: 130px;
+            background: linear-gradient(145deg, #F0F0F2 0%, #E8E8EC 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding: 14px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Subtle decorative circles */
+        .card-no-image-header::before {
+            content: '';
+            position: absolute;
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.04);
+            top: -40px;
+            right: -25px;
+        }
+
+        .card-no-image-header::after {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.03);
+            bottom: -25px;
+            left: 5px;
+        }
+
+        .no-img-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #A1A1AA;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-body {
+            padding: 13px 15px 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-category {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 5px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111;
+            line-height: 1.4;
+            margin-bottom: 8px;
+            flex: 1;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #A1A1AA;
+            margin-top: auto;
+        }
+
+        .card-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .card-author {
+            font-weight: 500;
+            color: #71717A;
+        }
+
+        /* ══ RIGHT SIDEBAR ══ */
+        .sidebar-right {
+            width: 248px;
+            flex-shrink: 0;
+            background: #fff;
+            border-left: 1px solid #E4E4E7;
+            padding: 20px 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+        }
+
+        .sidebar-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 12px;
+        }
+
+        .tags-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag-chip {
+            padding: 4px 11px;
+            border-radius: 20px;
+            border: 1px solid #E4E4E7;
+            font-size: 12px;
+            font-weight: 500;
+            color: #52525B;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .tag-chip:hover {
+            background: #EFF6FF;
+            border-color: #BFDBFE;
+            color: #2563EB;
+        }
+
+        .author-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .author-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 8px;
+            transition: background 0.15s;
+        }
+
+        .author-item:hover {
+            background: #F4F4F5;
+        }
+
+        .author-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .author-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .author-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #111;
+        }
+
+        .author-bio {
+            font-size: 11px;
+            color: #A1A1AA;
+            margin-top: 1px;
+        }
+
+        .author-follow {
+            font-size: 11px;
+            font-weight: 600;
+            color: #2563EB;
+            padding: 4px 10px;
+            border: 1px solid #BFDBFE;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }
+
+        .author-follow:hover {
+            background: #EFF6FF;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR: global nav only -->
+    <nav class="navbar">
+        <div class="logo">Plynt<span>.</span>space</div>
+        <div class="nav-links">
+            <a class="nav-link active" href="#">Home</a>
+            <a class="nav-link" href="#">Trending</a>
+            <a class="nav-link" href="#">Latest</a>
+        </div>
+        <div class="search-bar">
+            <svg width="13" height="13" fill="none" stroke="#A1A1AA" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+            </svg>
+            Search articles...
+        </div>
+        <button class="btn-write">✍️ Write</button>
+    </nav>
+
+    <div class="layout">
+
+        <!-- LEFT SIDEBAR: categories only -->
+        <aside class="sidebar-left">
+            <div class="section-label">Browse</div>
+            <div class="cat-item active">
+                <div class="cat-dot" style="background:#71717A"></div>
+                All Articles
+                <span class="cat-count">42</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#2563EB"></div>
+                Technology
+                <span class="cat-count">14</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#10B981"></div>
+                Business
+                <span class="cat-count">8</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#F59E0B"></div>
+                Lifestyle
+                <span class="cat-count">7</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#EF4444"></div>
+                Health
+                <span class="cat-count">5</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#8B5CF6"></div>
+                Science
+                <span class="cat-count">4</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#F97316"></div>
+                Sports
+                <span class="cat-count">3</span>
+            </div>
+            <div class="cat-item">
+                <div class="cat-dot" style="background:#EC4899"></div>
+                Entertainment
+                <span class="cat-count">4</span>
+            </div>
+        </aside>
+
+        <!-- CENTER FEED -->
+        <main class="feed">
+
+            <!-- Tabs: personalization, not nav -->
+            <div class="feed-tabs">
+                <div class="tab active">For You</div>
+                <div class="tab">Following</div>
+                <div class="tab">New</div>
+            </div>
+
+            <!-- Hero: editor-pinned featured article (always has a cover) -->
+            <div class="hero-card">
+                <img src="https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=900"
+                    alt="" />
+                <div class="hero-overlay">
+                    <div class="hero-badges">
+                        <span class="badge-featured">⭐ Featured</span>
+                        <span class="badge-cat">Technology</span>
+                    </div>
+                    <div class="hero-title">What Is React.js and Why Should Every Developer Learn It in 2025?</div>
+                    <div class="hero-meta">
+                        <div class="hero-avatar" style="background:#4ADE80">A</div>
+                        <span class="hero-meta-text"><strong>@admin</strong> · 8 min read · Jul 6, 2025</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ARTICLE GRID: mix of with-image and without-image cards -->
+            <div class="article-grid">
+
+                <!-- WITH image -->
+                <div class="article-card">
+                    <img class="card-img"
+                        src="https://images.pexels.com/photos/2582937/pexels-photo-2582937.jpeg?auto=compress&cs=tinysrgb&w=400"
+                        alt="" />
+                    <div class="card-body">
+                        <div class="card-category" style="color:#10B981">Business</div>
+                        <div class="card-title">How Startups Are Disrupting Traditional Finance in 2025</div>
+                        <div class="card-meta">
+                            <div class="card-avatar" style="background:#10B981">J</div>
+                            <span class="card-author">john_doe</span> · <span>5 min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WITHOUT image → neutral brand-safe header -->
+                <div class="article-card">
+                    <div class="card-no-image-header">
+                        <span class="no-img-label">Science</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-category" style="color:#8B5CF6">Science</div>
+                        <div class="card-title">James Webb Telescope Reveals Galaxies That Shouldn't Exist</div>
+                        <div class="card-meta">
+                            <div class="card-avatar" style="background:#8B5CF6">N</div>
+                            <span class="card-author">nadia_k</span> · <span>7 min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WITH image -->
+                <div class="article-card">
+                    <img class="card-img"
+                        src="https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400"
+                        alt="" />
+                    <div class="card-body">
+                        <div class="card-category" style="color:#F59E0B">Lifestyle</div>
+                        <div class="card-title">10 Morning Habits of the World's Most Productive People</div>
+                        <div class="card-meta">
+                            <div class="card-avatar" style="background:#F59E0B">S</div>
+                            <span class="card-author">sara_writes</span> · <span>4 min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WITHOUT image → neutral brand-safe header -->
+                <div class="article-card">
+                    <div class="card-no-image-header">
+                        <span class="no-img-label">Health</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-category" style="color:#EF4444">Health</div>
+                        <div class="card-title">The Science of Sleep: Why 7 Hours Is Not Always Enough</div>
+                        <div class="card-meta">
+                            <div class="card-avatar" style="background:#EF4444">M</div>
+                            <span class="card-author">dr_mehta</span> · <span>6 min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WITH image -->
+                <div class="article-card">
+                    <img class="card-img"
+                        src="https://images.pexels.com/photos/2385477/pexels-photo-2385477.jpeg?auto=compress&cs=tinysrgb&w=400"
+                        alt="" />
+                    <div class="card-body">
+                        <div class="card-category" style="color:#F97316">Sports</div>
+                        <div class="card-title">Why Data Analytics Is Becoming the Secret Weapon of Elite Sports Teams
+                        </div>
+                        <div class="card-meta">
+                            <div class="card-avatar" style="background:#F97316">R</div>
+                            <span class="card-author">raj_sports</span> · <span>3 min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WITHOUT image → neutral header -->
+                <div class="article-card">
+                    <div class="card-no-image-header">
+                        <span class="no-img-label">Entertainment</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-category" style="color:#EC4899">Entertainment</div>
+                        <div class="card-title">Streaming Wars 2025: Who's Winning and What It Means for You</div>
+                        <div class="card-meta">
+                            <div class="card-avatar" style="background:#EC4899">L</div>
+                            <span class="card-author">layla_media</span> · <span>5 min</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR: supplementary, non-duplicating -->
+        <aside class="sidebar-right">
+
+            <!-- Latest Articles -->
+            <div>
+                <div class="sidebar-title">Latest Articles</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+
+                    <div style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;padding:5px 4px;border-radius:8px;transition:background 0.15s;"
+                        onmouseenter="this.style.background='#F4F4F5'"
+                        onmouseleave="this.style.background='transparent'">
+                        <img style="width:54px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;"
+                            src="https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=100"
+                            alt="" />
+                        <div style="flex:1;min-width:0;">
+                            <div
+                                style="font-size:12px;font-weight:600;color:#111;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+                                What Is React.js and Why Every Developer Should Learn It</div>
+                            <div style="font-size:10px;color:#A1A1AA;margin-top:2px;">Technology</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;padding:5px 4px;border-radius:8px;transition:background 0.15s;"
+                        onmouseenter="this.style.background='#F4F4F5'"
+                        onmouseleave="this.style.background='transparent'">
+                        <div
+                            style="width:54px;height:42px;border-radius:6px;flex-shrink:0;background:#F0F0F2;display:flex;align-items:center;justify-content:center;">
+                            <span
+                                style="font-size:10px;font-weight:700;color:#A1A1AA;text-transform:uppercase;letter-spacing:0.05em;">SCI</span>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div
+                                style="font-size:12px;font-weight:600;color:#111;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+                                James Webb Telescope Reveals Galaxies That Shouldn't Exist</div>
+                            <div style="font-size:10px;color:#A1A1AA;margin-top:2px;">Science</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;padding:5px 4px;border-radius:8px;transition:background 0.15s;"
+                        onmouseenter="this.style.background='#F4F4F5'"
+                        onmouseleave="this.style.background='transparent'">
+                        <img style="width:54px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;"
+                            src="https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100"
+                            alt="" />
+                        <div style="flex:1;min-width:0;">
+                            <div
+                                style="font-size:12px;font-weight:600;color:#111;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+                                10 Morning Habits of the World's Most Productive People</div>
+                            <div style="font-size:10px;color:#A1A1AA;margin-top:2px;">Lifestyle</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;padding:5px 4px;border-radius:8px;transition:background 0.15s;"
+                        onmouseenter="this.style.background='#F4F4F5'"
+                        onmouseleave="this.style.background='transparent'">
+                        <div
+                            style="width:54px;height:42px;border-radius:6px;flex-shrink:0;background:#F0F0F2;display:flex;align-items:center;justify-content:center;">
+                            <span
+                                style="font-size:10px;font-weight:700;color:#A1A1AA;text-transform:uppercase;letter-spacing:0.05em;">HLT</span>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div
+                                style="font-size:12px;font-weight:600;color:#111;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">
+                                The Science of Sleep: Why 7 Hours Is Not Always Enough</div>
+                            <div style="font-size:10px;color:#A1A1AA;margin-top:2px;">Health</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div>
+                <div class="sidebar-title">Popular Tags</div>
+                <div class="tags-cloud">
+                    <span class="tag-chip">#reactjs</span>
+                    <span class="tag-chip">#startup</span>
+                    <span class="tag-chip">#productivity</span>
+                    <span class="tag-chip">#ai</span>
+                    <span class="tag-chip">#webdev</span>
+                    <span class="tag-chip">#sleep</span>
+                    <span class="tag-chip">#fintech</span>
+                    <span class="tag-chip">#jwst</span>
+                    <span class="tag-chip">#sportstech</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="sidebar-title">Authors to Read</div>
+                <div class="author-list">
+                    <div class="author-item">
+                        <div class="author-avatar" style="background:#2563EB">A</div>
+                        <div class="author-info">
+                            <div class="author-name">@admin</div>
+                            <div class="author-bio">12 articles · Technology</div>
+                        </div>
+                        <button class="author-follow">Follow</button>
+                    </div>
+                    <div class="author-item">
+                        <div class="author-avatar" style="background:#8B5CF6">N</div>
+                        <div class="author-info">
+                            <div class="author-name">@nadia_k</div>
+                            <div class="author-bio">7 articles · Science</div>
+                        </div>
+                        <button class="author-follow">Follow</button>
+                    </div>
+                    <div class="author-item">
+                        <div class="author-avatar" style="background:#F59E0B">S</div>
+                        <div class="author-info">
+                            <div class="author-name">@sara_writes</div>
+                            <div class="author-bio">5 articles · Lifestyle</div>
+                        </div>
+                        <button class="author-follow">Follow</button>
+                    </div>
+                    <div class="author-item">
+                        <div class="author-avatar" style="background:#10B981">J</div>
+                        <div class="author-info">
+                            <div class="author-name">@john_doe</div>
+                            <div class="author-bio">4 articles · Business</div>
+                        </div>
+                        <button class="author-follow">Follow</button>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+</body>
+
+</html>
