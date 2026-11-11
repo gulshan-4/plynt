@@ -1,35 +1,33 @@
 import React from "react";
-import FeedLayout from "../components/FeedLayout";
+import CategoriesSidebar from "../components/HomeCategories";
+import TagsCloud from "../components/PopularTags";
+import TopPosts from "../components/TopPosts";
+import TrendingFeed from "../components/TrendingFeed";
+import { getTrendingPosts } from "@/app/actions/posts";
 
-import Card from "../components/Card";
+export const dynamic = "force-dynamic";
 
-const Trending = () => {
-  const trendingPosts = [
-    { id: 1, title: "Top 10 Travel Destinations", description: "Discover the best places to visit in 2023", image: "https://images.pexels.com/photos/2583852/pexels-photo-2583852.jpeg", slug: "top-10-travel", featured: true, tags: ["travel", "holidays"], likes: 320, comments: 76 },
-    { id: 2, title: "Best Food Trends", description: "What's hot in the culinary world", image: "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg", slug: "best-food-trends", tags: ["food", "trends"], likes: 210, comments: 45 },
-    { id: 3, title: "AI Revolution", description: "How AI is changing the world", image: "https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg", slug: "ai-revolution", tags: ["ai", "tech"], likes: 150, comments: 32 },
-  ];
-
-  return (
-    <FeedLayout title="Trending">
-      <div className="flex flex-col gap-6 items-center">
-        {trendingPosts.map((post) => (
-          <Card
-            key={post.id}
-            title={post.title}
-            description={post.description}
-            image={post.image}
-            slug={post.slug}
-            author={post.author || "Daniel Kraszewski"}
-            tags={post.tags || []}
-            likes={post.likes || 0}
-            comments={post.comments || 0}
-            featured={post.featured}
-          />
-        ))}
-      </div>
-    </FeedLayout>
-  );
+export const metadata = {
+  title: "Trending | Plynt.space",
+  description: "The most popular and talked-about articles on Plynt.space right now.",
 };
 
-export default Trending;
+export default async function Trending() {
+  const { posts } = await getTrendingPosts(1, 20);
+
+  return (
+    <div className="layout">
+      <aside className="sidebar-left">
+        <CategoriesSidebar />
+      </aside>
+
+      <TrendingFeed initialPosts={posts} />
+
+      <aside className="sidebar-right">
+        <TopPosts>
+          <TagsCloud />
+        </TopPosts>
+      </aside>
+    </div>
+  );
+}

@@ -27,6 +27,10 @@ export async function publishPost(formData) {
 
   const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(Boolean) : []
 
+  // Calculate read time on the server
+  const wordCount = content ? content.trim().split(/\s+/).length : 0
+  const readTime = Math.max(1, Math.ceil(wordCount / 200))
+
   const postData = {
     title,
     slug,
@@ -35,6 +39,7 @@ export async function publishPost(formData) {
     tags,
     category_id: categoryId || null,
     cover_image: coverImage || null,
+    read_time: readTime,
     published: true,
     updated_at: new Date().toISOString()
   }
@@ -280,51 +285,175 @@ export async function getLatestFeed(page = 1, limit = 20) {
   const from = (page - 1) * limit
   const to = from + limit - 1
 
-  let featuredPost = null
-
-  // If page 1, fetch the featured post based on the algorithm
-  // Algorithm: Most likes + views from the last 5 days
-  if (page === 1) {
-    const fiveDaysAgo = new Date()
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5)
-
-    const { data: topData } = await supabase
-      .from('posts')
-      .select('*, profiles!posts_author_id_fkey(username, avatar_url, full_name)')
-      .eq('published', true)
-      .gte('created_at', fiveDaysAgo.toISOString())
-      .order('likes', { ascending: false }) // Postgres doesn't easily let us order by (likes+views) directly via PostgREST without an RPC or View, so we'll fetch top 20 and compute in JS
-      .limit(20)
-
-    if (topData && topData.length > 0) {
-      // Sort by likes + views_count
-      const sorted = topData.sort((a, b) => {
-        const aScore = (a.likes || 0) + (a.views_count || 0)
-        const bScore = (b.likes || 0) + (b.views_count || 0)
-        return bScore - aScore
-      })
-      featuredPost = sorted[0]
-    }
-  }
-
-  // Fetch the latest posts feed
-  let query = supabase
+  const { data: posts, error } = await supabase
     .from('posts')
     .select('*, profiles!posts_author_id_fkey(username, avatar_url, full_name)')
     .eq('published', true)
-
-  if (featuredPost) {
-    query = query.neq('id', featuredPost.id) // exclude the featured post from the main feed
-  }
-
-  query = query.order('created_at', { ascending: false }).range(from, to)
-
-  const { data: posts, error } = await query
+    .order('created_at', { ascending: false })
+    .range(from, to)
 
   if (error) {
-    console.error("Error fetching latest feed:", error.message || error)
+    console.error('Error fetching latest feed:', error.message || error)
     return { posts: [] }
   }
 
-  return { featuredPost, posts: posts || [] }
+  return { posts: posts || [] }
+}
+
+// Get trending posts — most engaged (likes * 2 + comments + views) in the last 30 days
+export async function getTrendingPosts(page = 1, limit = 20) {
+  const supabase = await createClient()
+  const from = (page - 1) * limit
+  const to = from + limit - 1
+
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  let { data: posts, error } = await supabase
+    .from('posts')
+    .select('*, profiles!posts_author_id_fkey(username, avatar_url, full_name)')
+    .eq('published', true)
+    .gte('created_at', thirtyDaysAgo.toISOString())
+    .order('likes', { ascending: false })
+    .range(from, to)
+
+  // Fallback to all-time if no recent posts
+  if (!posts || posts.length === 0) {
+    const { data: fallback, error: fbError } = await supabase
+      .from('posts')
+      .select('*, profiles!posts_author_id_fkey(username, avatar_url, full_name)')
+      .eq('published', true)
+      .order('likes', { ascending: false })
+      .range(from, to)
+    posts = fallback
+    error = fbError
+  }
+
+  if (error) {
+    console.error('Error fetching trending posts:', error.message || error)
+    return { posts: [] }
+  }
+
+  // Sort by engagement score client-side for accuracy
+  const sorted = (posts || []).sort((a, b) => {
+    const scoreA = (a.likes || 0) * 2 + (a.comments_count || 0) + (a.views_count || 0)
+    const scoreB = (b.likes || 0) * 2 + (b.comments_count || 0) + (b.views_count || 0)
+    return scoreB - scoreA
+  })
+
+  return { posts: sorted }
+}
+
+// Fetch paginated feed posts
+export async function getFeedPosts(tab = 'for_you', page = 1, limit = 10) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (tab === 'for_you') {
+    const fiveDaysAgo = new Date()
+    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5)
+    
+    // Fetch ALL recent posts up to (page * limit)
+    const { data: recentPosts } = await supabase
+      .from('posts')
+      .select('*, profiles!posts_author_id_fkey(username, full_name, avatar_url)')
+      .eq('published', true)
+      .gte('created_at', fiveDaysAgo.toISOString())
+      .order('likes', { ascending: false })
+      .limit(page * limit)
+
+    let allRealPosts = recentPosts || []
+    
+    // If we haven't reached our total required items (page * limit), fallback
+    if (allRealPosts.length < page * limit) {
+      const { data: allTimePopular } = await supabase
+        .from('posts')
+        .select('*, profiles!posts_author_id_fkey(username, full_name, avatar_url)')
+        .eq('published', true)
+        .order('likes', { ascending: false })
+        .limit((page * limit) + allRealPosts.length)
+        
+      const existingIds = new Set(allRealPosts.map(p => p.id))
+      const fallbackFiltered = (allTimePopular || []).filter(p => !existingIds.has(p.id))
+      
+      allRealPosts = [...allRealPosts, ...fallbackFiltered].slice(0, page * limit)
+    }
+    
+    // Return only the current page slice
+    const startIndex = (page - 1) * limit
+    const pageData = allRealPosts.slice(startIndex, startIndex + limit)
+    return { posts: pageData, hasMore: pageData.length === limit }
+  }
+
+  if (tab === 'following') {
+    if (!user) return { posts: [], hasMore: false }
+    
+    const { data: follows } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', user.id)
+
+    if (!follows || follows.length === 0) {
+      return { posts: [], hasMore: false }
+    }
+
+    const followingIds = follows.map(f => f.following_id)
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+
+    const { data: followingPosts, error } = await supabase
+      .from('posts')
+      .select('*, profiles!posts_author_id_fkey(username, full_name, avatar_url)')
+      .eq('published', true)
+      .in('author_id', followingIds)
+      .order('created_at', { ascending: false })
+      .range(from, to)
+      
+    if (error) {
+      console.error("Error fetching 'following' feed:", error)
+      return { posts: [], hasMore: false }
+    }
+    return { posts: followingPosts || [], hasMore: (followingPosts?.length || 0) === limit }
+  }
+
+  if (tab === 'new') {
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+    const { data: newPosts, error } = await supabase
+      .from('posts')
+      .select('*, profiles!posts_author_id_fkey(username, full_name, avatar_url)')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .range(from, to)
+      
+    if (error) {
+      console.error("Error fetching 'new' feed:", error)
+      return { posts: [], hasMore: false }
+    }
+    return { posts: newPosts || [], hasMore: (newPosts?.length || 0) === limit }
+  }
+
+  return { posts: [], hasMore: false }
+}
+
+// Live Search Posts
+export async function searchPosts(query) {
+  if (!query || query.trim() === '') return []
+  
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('posts')
+    .select('id, title, slug, cover_image, created_at, profiles!posts_author_id_fkey(username, full_name)')
+    .eq('published', true)
+    .ilike('title', `%${query.trim()}%`)
+    .order('created_at', { ascending: false })
+    .limit(5)
+    
+  if (error) {
+    console.error("Error searching posts:", error)
+    return []
+  }
+  
+  return data || []
 }

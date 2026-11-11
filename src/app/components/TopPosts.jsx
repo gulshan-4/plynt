@@ -1,85 +1,100 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { BiCommentDetail } from "react-icons/bi";
-import { FaHeart } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { getSidebarData } from "@/app/actions/sidebar";
 
-const topPosts = [
-  {
-    id: 1,
-    title: "Top 10 Travel Destinations",
-    image: "https://images.pexels.com/photos/2583852/pexels-photo-2583852.jpeg",
-    reviews: 76,
-    likes: 320,
-    slug: "top-10-travel-destinations",
-  },
-  {
-    id: 2,
-    title: "Best Food Trends",
-    image: null,
-    reviews: 45,
-    likes: 210,
-    slug: "best-food-trends",
-  },
-  {
-    id: 3,
-    title: "AI Revolution",
-    image: "https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg",
-    reviews: 32,
-    likes: 150,
-    slug: "ai-revolution",
+export default function TopPosts({ children }) {
+  const [latestArticles, setLatestArticles] = useState([]);
+  const [topAuthors, setTopAuthors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadSidebar() {
+      const { latestArticles, topAuthors } = await getSidebarData();
+      setLatestArticles(latestArticles);
+      setTopAuthors(topAuthors);
+      setLoading(false);
+    }
+    loadSidebar();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="opacity-50 animate-pulse">
+        <div className="sidebar-title">Latest Articles</div>
+        <div className="h-20 bg-gray-200 rounded mb-4"></div>
+        <div className="h-20 bg-gray-200 rounded mb-4"></div>
+        {children}
+        <div className="sidebar-title mt-6">Authors to Read</div>
+        <div className="h-16 bg-gray-200 rounded mb-4"></div>
+      </div>
+    );
   }
-];
 
-export default function TopPosts({sticky}) {
   return (
-    <section className={`popular-posts sidebar-scroll bg-white rounded-lg shadow-md p-5 mb-8 ${sticky? ' sticky top-20' : ''} max-h-full overflow-auto`}>
-      <h3 className="text-xl font-bold mb-5 text-gray-800">Popular Posts</h3>
-
-      <ul className="space-y-5">
-        {topPosts.map((post, index) => (
-          <li
-            key={post.id}
-            className={`transition-all duration-200 hover:shadow-md overflow-hidden ${
-              topPosts.length !== index + 1 ? "pb-4 border-b border-[#000000]/16" : ""
-            }`}
-          >
-            <Link href={`/@danielk/${post.slug}`} className="group block">
-              {post.image ? (
-                <div className="relative w-full h-[150px] sm:h-[180px] overflow-hidden rounded-md">
-                  <Image
-                    src={post.image}
-                    alt={post.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              ) : (
-                ""
-                // <div className="bg-gray-100 h-[150px] sm:h-[180px] flex items-center justify-center text-gray-400 text-sm italic rounded-md">
-                //   No image available
-                // </div>
-              )}
-
-              <div className="pt-3">
-                <h4 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 leading-snug line-clamp-2">
-                  {post.title}
-                </h4>
-
-                <div className="flex items-center gap-4 text-xs text-blue-500 mt-2">
-                  <div className="flex items-center">
-                    <BiCommentDetail className="w-3.5 h-3.5 mr-1" />
-                    <span>{post.reviews}</span>
+    <>
+      <div>
+        <div className="sidebar-title">Latest Articles</div>
+        <div>
+          {latestArticles?.length > 0 ? (
+            latestArticles.map((article) => {
+              const category = article.tags?.[0] || 'Article';
+              const username = article.profiles?.username || 'user';
+              
+              return (
+                <Link key={article.id} href={`/@${username}/${article.slug}`} className="latest-item">
+                  {article.cover_image ? (
+                    <img className="latest-img" src={article.cover_image} alt={article.title} />
+                  ) : (
+                    <div className="latest-no-img">
+                      <span>{category.slice(0, 3).toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="latest-title">{article.title}</div>
+                    <div className="latest-cat">{category}</div>
                   </div>
-                  <div className="flex items-center">
-                    <FaHeart className="w-3.5 h-3.5 mr-1" />
-                    <span>{post.likes}</span>
+                </Link>
+              );
+            })
+          ) : (
+            <div style={{ fontSize: '14px', color: '#666', padding: '8px 0' }}>No articles yet.</div>
+          )}
+        </div>
+      </div>
+
+      {children}
+
+      <div>
+        <div className="sidebar-title">Authors to Read</div>
+        <div className="author-list">
+          {topAuthors.length > 0 ? (
+            topAuthors.map((author) => (
+              <div key={author.id} className="author-item">
+                {author.avatar ? (
+                  <div className="author-avatar" style={{ padding: 0, overflow: 'hidden' }}>
+                    <img src={author.avatar} alt={author.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
+                ) : (
+                  <div className="author-avatar">{author.name.charAt(0).toUpperCase()}</div>
+                )}
+                
+                <div className="author-info">
+                  <div className="author-name">{author.name}</div>
+                  <div className="author-bio">{author.bio}</div>
                 </div>
+                <Link href={`/@${author.username}`} className="author-follow" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  View
+                </Link>
               </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+            ))
+          ) : (
+            <div style={{ fontSize: '14px', color: '#666', padding: '8px 0' }}>No authors yet.</div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

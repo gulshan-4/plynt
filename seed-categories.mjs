@@ -12,7 +12,8 @@ const categories = [
   { name: 'Health', slug: 'health' },
   { name: 'Science', slug: 'science' },
   { name: 'Sports', slug: 'sports' },
-  { name: 'Entertainment', slug: 'entertainment' }
+  { name: 'Entertainment', slug: 'entertainment' },
+  { name: 'Finance', slug: 'finance' }
 ];
 
 async function seed() {

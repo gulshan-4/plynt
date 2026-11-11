@@ -24,13 +24,13 @@ export default function Error({ error, reset }) {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
           <button
             onClick={() => reset()}
-            className="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+            className="w-full sm:w-auto px-6 py-3 bg-[#111] hover:bg-black text-white font-medium transition-colors"
           >
             Try again
           </button>
           <Link
             href="/"
-            className="w-full sm:w-auto px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium rounded-xl transition-colors"
+            className="w-full sm:w-auto px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-medium transition-colors"
           >
             Go back home
           </Link>

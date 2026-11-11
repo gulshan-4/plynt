@@ -79,7 +79,7 @@ export default function InfiniteFeed({ initialPosts, initialFeaturedPost }) {
 
   return (
     <>
-      <div className="flex flex-col gap-6 items-center">
+      <div className="flex flex-col gap-8 w-full">
         {mappedFeatured && (
           <Card
             key={`featured-${mappedFeatured.id}`}

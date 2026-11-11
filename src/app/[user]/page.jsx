@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Card from '../components/Card';
 import CoverImageEditor from '../components/CoverImageEditor';
+import FollowButton from '../components/FollowButton';
 import { notFound } from 'next/navigation';
 
 import { createClient } from '@/utils/supabase/server';
@@ -54,16 +55,43 @@ const ProfilePage = async ({ params }) => {
     .eq('published', true)
     .order('created_at', { ascending: false });
 
-  // Compute some stats
+  // Compute stats
   const totalPosts = recentPosts?.length || 0;
   const totalLikes = recentPosts?.reduce((acc, p) => acc + (p.likes || 0), 0) || 0;
 
-  // Since we don't have following/followers tables yet, use placeholders or 0
-  const stats = {
-    followers: 0,
-    following: 0,
-    posts: totalPosts
-  };
+  // Fetch Followers and Following counts
+  let followersCount = 0;
+  let followingCount = 0;
+  let isFollowing = false;
+
+  const { count: fCount } = await supabase
+    .from('follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('following_id', profile.id);
+  followersCount = fCount || 0;
+
+  const { count: fngCount } = await supabase
+    .from('follows')
+    .select('*', { count: 'exact', head: true })
+    .eq('follower_id', profile.id);
+  followingCount = fngCount || 0;
+
+  // Check if current user is following
+  if (currentUser) {
+    const { data: followCheck } = await supabase
+      .from('follows')
+      .select('follower_id')
+      .eq('follower_id', currentUser.id)
+      .eq('following_id', profile.id)
+      .single();
+    if (followCheck) isFollowing = true;
+  }
+
+  // Split out the featured post
+  const pinnedPost = recentPosts?.find((p) => p.is_pinned) || recentPosts?.[0];
+  const displayPosts = pinnedPost 
+    ? recentPosts.filter(p => p.id !== pinnedPost.id) 
+    : recentPosts || [];
 
   const socials = {
     twitter: "#",
@@ -71,51 +99,55 @@ const ProfilePage = async ({ params }) => {
     website: "#"
   };
 
-  const pinnedPost = recentPosts?.find(p => p.featured) || null;
-  const displayPosts = pinnedPost ? recentPosts.filter(p => p.id !== pinnedPost.id) : recentPosts || [];
-
   const popularPosts = [...(recentPosts || [])]
     .sort((a, b) => ((b.likes || 0) + (b.views_count || 0)) - ((a.likes || 0) + (a.views_count || 0)))
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16">
-      {/* Hero / Cover */}
-      <CoverImageEditor 
-        initialCoverUrl={profile.cover_url}
-        isOwner={currentUser?.id === profile.id}
-        profileId={profile.id}
-      />
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-20 mt-6 lg:mt-10">
+      <main className="w-full">
+        
+        <CoverImageEditor profile={profile} isOwner={currentUser?.id === profile.id} />
 
-      <div className="container mx-auto px-4 max-w-5xl">
-        {/* Profile Info Card (Overlapping cover) */}
-        <div className="relative -mt-16 sm:-mt-24 bg-white rounded-2xl shadow-sm p-6 sm:p-8 flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start border border-gray-100">
+        {/* Profile Header Details */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end -mt-16 md:-mt-24 px-4 relative z-10">
+          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
+            {/* Avatar */}
+            <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white overflow-hidden bg-white shadow-lg relative group mb-4">
+              <Image 
+                src={profile.avatar_url || '/user.webp'} 
+                alt={profile.full_name || profile.username} 
+                fill 
+                className="object-cover"
+              />
+            </div>
 
-          <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-md overflow-hidden shrink-0 bg-white">
-            <Image
-              src={profile.avatar_url || "/user.webp"}
-              alt={profile.full_name || profile.username}
-              fill
-              className="object-cover"
-            />
-          </div>
+            {/* Name & Bio */}
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
+                {profile.full_name || profile.username}
+              </h1>
+              <p className="text-gray-500 font-medium text-lg mt-1">@{profile.username}</p>
+              {profile.bio && (
+                <p className="mt-4 text-gray-700 max-w-lg leading-relaxed text-base">
+                  {profile.bio}
+                </p>
+              )}
+            </div>
 
-          <div className="flex-1 text-center md:text-left mt-2 md:mt-4">
-            <h1 className="text-3xl font-bold text-gray-900">{profile.full_name || profile.username}</h1>
-            <p className="text-gray-500 font-medium">@{profile.username}</p>
-            {profile.tagline && (
-              <p className="text-blue-600 font-medium mt-1">{profile.tagline}</p>
-            )}
-            {profile.bio && (
-              <p className="text-gray-700 mt-3 text-lg leading-relaxed max-w-2xl">
-                {profile.bio}
-              </p>
-            )}
-
-            <div className="flex flex-wrap justify-center md:justify-start gap-4 sm:gap-8 mt-5 text-sm">
+            {/* Stats Row */}
+            <div className="flex flex-wrap justify-center md:justify-start gap-6 mt-6 md:mt-8 pb-4">
               <div className="flex flex-col items-center md:items-start">
-                <span className="font-bold text-gray-900 text-lg">{stats.posts}</span>
-                <span className="text-gray-500">Posts</span>
+                <span className="font-bold text-gray-900 text-lg">{followersCount}</span>
+                <span className="text-gray-500">Followers</span>
+              </div>
+              <div className="flex flex-col items-center md:items-start">
+                <span className="font-bold text-gray-900 text-lg">{followingCount}</span>
+                <span className="text-gray-500">Following</span>
+              </div>
+              <div className="flex flex-col items-center md:items-start">
+                <span className="font-bold text-gray-900 text-lg">{totalPosts}</span>
+                <span className="text-gray-500">Articles</span>
               </div>
               <div className="flex flex-col items-center md:items-start">
                 <span className="font-bold text-gray-900 text-lg">{totalLikes}</span>
@@ -130,9 +162,7 @@ const ProfilePage = async ({ params }) => {
                 Edit Profile
               </Link>
             ) : (
-              <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors w-full sm:w-auto shadow-sm">
-                Follow
-              </button>
+              <FollowButton targetUserId={profile.id} initialIsFollowing={isFollowing} isLoggedIn={!!currentUser} />
             )}
           </div>
         </div>
@@ -241,7 +271,7 @@ const ProfilePage = async ({ params }) => {
           </div>
 
         </div>
-      </div>
+      </main>
     </div>
   );
 };

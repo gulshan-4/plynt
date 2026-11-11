@@ -25,10 +25,39 @@ create policy "Users can update own profile."
   on profiles for update
   using ( auth.uid() = id );
 
+-- Create Categories Table
+create table categories (
+  id uuid default uuid_generate_v4() primary key,
+  name text not null unique,
+  slug text not null unique,
+  description text,
+  featured boolean default false,
+  image_url text,
+  post_count integer default 0
+);
+
+alter table categories enable row level security;
+create policy "Categories are viewable by everyone." on categories for select using (true);
+create policy "Only authenticated users can create categories." on categories for insert with check (auth.role() = 'authenticated');
+
+-- Create Category Followers Table (Junction Table)
+create table category_followers (
+  user_id uuid references profiles(id) on delete cascade not null,
+  category_id uuid references categories(id) on delete cascade not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  primary key (user_id, category_id)
+);
+
+alter table category_followers enable row level security;
+create policy "Followers are viewable by everyone." on category_followers for select using (true);
+create policy "Users can follow categories." on category_followers for insert with check (auth.uid() = user_id);
+create policy "Users can unfollow categories." on category_followers for delete using (auth.uid() = user_id);
+
 -- Create posts table
 create table posts (
   id uuid default uuid_generate_v4() primary key,
   author_id uuid references profiles(id) not null,
+  category_id uuid references categories(id),
   title text not null,
   slug text not null unique,
   description text,
@@ -84,17 +113,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Create Categories Table
-create table categories (
-  id uuid default uuid_generate_v4() primary key,
-  name text not null unique,
-  slug text not null unique,
-  image_url text
-);
-
-alter table categories enable row level security;
-create policy "Categories are viewable by everyone." on categories for select using (true);
-create policy "Only authenticated users can create categories." on categories for insert with check (auth.role() = 'authenticated');
 
 -- Create Comments Table
 create table comments (
@@ -205,3 +223,32 @@ create or replace function increment_views(p_id uuid)
 returns void language sql security definer as $$
   update posts set views_count = views_count + 1 where id = p_id;
 $$;
+
+-- Trigger to update category post_count
+create or replace function update_category_post_count()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if (TG_OP = 'INSERT' and new.category_id is not null) then
+    update categories set post_count = post_count + 1 where id = new.category_id;
+  elsif (TG_OP = 'DELETE' and old.category_id is not null) then
+    update categories set post_count = greatest(post_count - 1, 0) where id = old.category_id;
+  elsif (TG_OP = 'UPDATE') then
+    if (old.category_id is distinct from new.category_id) then
+      if (old.category_id is not null) then
+        update categories set post_count = greatest(post_count - 1, 0) where id = old.category_id;
+      end if;
+      if (new.category_id is not null) then
+        update categories set post_count = post_count + 1 where id = new.category_id;
+      end if;
+    end if;
+  end if;
+  return null;
+end;
+$$;
+
+create trigger on_post_category_change
+  after insert or update or delete on posts
+  for each row execute procedure update_category_post_count();

@@ -1,17 +1,16 @@
 import React from 'react';
-import { createClient } from '@/utils/supabase/server';
 import Card from '@/app/components/Card';
-import CategoriesSidebar from '@/app/components/HomeCategories';
-import TagsCloud from '@/app/components/PopularTags';
-import { FiFolder } from 'react-icons/fi';
+import Link from 'next/link';
+import CategoryInfiniteGrid from '@/app/components/CategoryInfiniteGrid';
+import FollowCategoryButton from '@/app/components/FollowCategoryButton';
+import { getSidebarCategories, getCategoryPosts, checkIsFollowingCategory } from '@/app/actions/categories';
+import { createClient } from '@/utils/supabase/server';
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug).toLowerCase();
-
   return {
     title: `${decodedSlug.charAt(0).toUpperCase() + decodedSlug.slice(1)} | Plynt.space Categories`,
-    description: `Discover the best articles and tutorials about ${decodedSlug} on Plynt.space.`,
   };
 }
 
@@ -19,105 +18,75 @@ export default async function CategoryPage({ params }) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug).toLowerCase();
 
+  const sidebarCategories = await getSidebarCategories();
+
   const supabase = await createClient();
 
-  // Fetch the category by slug
-  const { data: category } = await supabase
+  // Fetch the category details
+  const { data: categoryData } = await supabase
     .from('categories')
-    .select('id, name')
+    .select('*')
     .eq('slug', decodedSlug)
     .single();
 
-  let query = supabase
-    .from('posts')
-    .select('*, profiles!posts_author_id_fkey(username, full_name)')
-    .eq('published', true)
-    .order('created_at', { ascending: false });
+  // Fetch initial articles (first 12) for this category
+  const initialPosts = await getCategoryPosts(categoryData?.id, decodedSlug, 0, 12, 'latest');
 
-  if (category) {
-    query = query.or(`category_id.eq.${category.id},tags.cs.{${decodedSlug}}`);
-  } else {
-    query = query.contains('tags', [decodedSlug]);
-  }
+  // Check if current user is following this category
+  const initialIsFollowing = await checkIsFollowingCategory(categoryData?.id);
 
-  const { data: posts, error } = await query;
-
-  if (error) {
-    console.error("Error fetching category posts:", error);
-  }
+  const currentCategory = {
+    name: categoryData?.name || decodedSlug.toUpperCase(),
+    description: categoryData?.description || `Articles and tutorials about ${decodedSlug}.`,
+    post_count: categoryData?.post_count || initialPosts?.length || 0,
+    slug: decodedSlug,
+    image_url: categoryData?.image_url || `/category-thumbs/covers/${decodedSlug}.jpg`,
+  };
 
   return (
-    <div className="bg-[#f9fafb] pb-8">
-      {/* Category Hero Header */}
-      <div className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="container mx-auto px-4 max-w-7xl py-6 flex flex-col items-center justify-center text-center">
-          <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-3 border border-orange-100">
-            <FiFolder size={20} strokeWidth={2.5} />
+    <div className="layout">
+      {/* LEFT SIDEBAR: JUMP TO */}
+      <aside className="sidebar-left">
+        <Link href="/categories" className="cat-item" style={{ fontSize: '0.75rem', fontWeight: 800, color: '#555' }}>
+          &larr; ALL CATEGORIES
+        </Link>
+        <div className="section-label" style={{ marginTop: '1rem' }}>Categories</div>
+        {sidebarCategories.map(cat => (
+          <Link key={cat.id} href={`/category/${cat.slug}`} className="cat-item" style={{ fontWeight: cat.slug === decodedSlug ? 800 : 600 }}>
+            {cat.name.toUpperCase()}
+            <span className="cat-count">{cat.post_count}</span>
+          </Link>
+        ))}
+      </aside>
+
+      {/* MAIN COLUMN */}
+      <main className="main-col">
+        {/* Breadcrumbs */}
+        <div className="cat-breadcrumb">
+          <Link href="/categories">Categories</Link> / <span>{currentCategory.name}</span>
+        </div>
+
+        {/* Hero Banner */}
+        <div className="cat-hero">
+          <img src={currentCategory.image_url} className="cat-hero-bg" alt={currentCategory.name} />
+          <div className="cat-hero-overlay"></div>
+          <div className="cat-hero-content">
+            <h1 className="cat-hero-title">{currentCategory.name}</h1>
+            <p className="cat-hero-desc">{currentCategory.description}</p>
+            <FollowCategoryButton 
+              categoryId={categoryData?.id} 
+              initialIsFollowing={initialIsFollowing} 
+            />
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-1 capitalize">
-            {decodedSlug.replace('-', ' ')}
-          </h1>
-          <p className="text-gray-500 max-w-xl mx-auto text-sm md:text-base">
-            Showing {posts?.length || 0} {posts?.length === 1 ? 'article' : 'articles'} in <span className="font-semibold text-gray-700 capitalize">{decodedSlug.replace('-', ' ')}</span>
-          </p>
         </div>
-      </div>
 
-      {/* Breadcrumb */}
-      <div className="container mx-auto px-4 max-w-7xl pt-6">
-        <nav className="flex items-center gap-2 text-sm text-gray-400">
-          <a href="/" className="hover:text-orange-600 transition-colors">Home</a>
-          <span>/</span>
-          <a href="/categories" className="hover:text-orange-600 transition-colors">Categories</a>
-          <span>/</span>
-          <span className="text-gray-700 font-medium capitalize">{decodedSlug.replace('-', ' ')}</span>
-        </nav>
-      </div>
-
-      <div className="container mx-auto px-4 max-w-7xl mt-4">
-        <div className="flex flex-col lg:flex-row items-start gap-8 lg:gap-10">
-          
-          {/* Main Feed */}
-          <main className="w-full lg:w-2/3 xl:w-3/4">
-            {posts && posts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {posts.map((post) => (
-                  <Card
-                    key={post.id}
-                    title={post.title}
-                    description={post.description}
-                    image={post.cover_image}
-                    slug={post.slug}
-                    author={post.profiles?.full_name || post.profiles?.username || "Author"}
-                    username={post.profiles?.username}
-                    tags={post.tags || []}
-                    likes={post.likes || 0}
-                    comments={post.comments_count || 0}
-                    featured={post.featured}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
-                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FiFolder size={32} className="text-gray-400" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No articles found</h3>
-                <p className="text-gray-500">
-                  We couldn't find any published articles in the <span className="font-semibold capitalize">{decodedSlug.replace('-', ' ')}</span> category.
-                </p>
-              </div>
-            )}
-          </main>
-
-          {/* Dedicated Sidebar */}
-          <aside className="w-full lg:w-1/3 xl:w-1/4 space-y-6">
-            <CategoriesSidebar />
-            <TagsCloud />
-          </aside>
-
-        </div>
-      </div>
+        <CategoryInfiniteGrid
+          initialPosts={initialPosts}
+          categoryId={categoryData?.id}
+          tagSlug={decodedSlug}
+          categoryName={currentCategory.name}
+        />
+      </main>
     </div>
   );
 }

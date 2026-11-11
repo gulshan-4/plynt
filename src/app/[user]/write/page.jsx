@@ -308,26 +308,40 @@ export default function WritePage() {
     }
   };
 
-  const handleCoverChange = (e) => {
+  const handleCoverChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setCover({ file, url: reader.result });
-    };
-    reader.readAsDataURL(file);
+    
+    const loadingToast = toast.loading("Uploading cover image...");
+    try {
+      const { uploadImage } = await import('@/app/lib/storage');
+      const publicUrl = await uploadImage(file);
+      setCover({ file, url: publicUrl });
+      toast.success("Cover uploaded!", { id: loadingToast });
+    } catch (error) {
+      toast.error("Failed to upload cover", { id: loadingToast });
+      console.error(error);
+    }
   };
 
-  const handleImagePicker = (e) => {
+  const handleImagePicker = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
+
+    const loadingToast = toast.loading("Uploading image...");
+    try {
+      const { uploadImage } = await import('@/app/lib/storage');
+      const publicUrl = await uploadImage(file);
+      
       if (editor) {
-        editor.chain().focus().setImage({ src: reader.result }).run();
+        editor.chain().focus().setImage({ src: publicUrl }).run();
       }
-    };
-    reader.readAsDataURL(file);
+      toast.success("Image inserted!", { id: loadingToast });
+    } catch (error) {
+      toast.error("Failed to upload image", { id: loadingToast });
+      console.error(error);
+    }
+    
     e.currentTarget.value = "";
   };
 

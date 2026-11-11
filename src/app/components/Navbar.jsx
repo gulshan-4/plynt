@@ -1,25 +1,54 @@
 'use client'
-import React , { useState } from 'react';
-import { TbEdit, TbSearch, TbX } from 'react-icons/tb';
+import React, { useState } from 'react';
+import { TbSearch, TbX } from 'react-icons/tb';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { FiMoon, FiSun } from "react-icons/fi";
-import { MdDarkMode } from "react-icons/md";
-import { useDispatch, useSelector } from 'react-redux';
-import { toggleTheme } from '../store/themeSlice';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { logout } from '@/app/actions/auth';
+import { searchPosts } from '@/app/actions/posts';
 import Image from 'next/image';
 
 const Navbar = ({ initialUser }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [user, setUser] = useState(initialUser);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const pathname = usePathname();
-  const dispatch = useDispatch();
-  const darkMode = useSelector((state) => state.theme.darkMode);
+  const router = useRouter();
+
+  React.useEffect(() => {
+    const fetchResults = async () => {
+      if (searchQuery.trim().length > 0) {
+        const results = await searchPosts(searchQuery);
+        setSearchResults(results);
+      } else {
+        setSearchResults([]);
+      }
+    };
+    const timer = setTimeout(() => fetchResults(), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setIsSearchOpen(false);
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setIsSearchOpen(false);
+      router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
 
   React.useEffect(() => {
     setUser(initialUser);
@@ -42,314 +71,109 @@ const Navbar = ({ initialUser }) => {
   }, []);
 
   const navLinks = [
-    { title: 'Latest', href: '/latest', active: true },
-    { title: 'Trending', href: '/trending', active: false },
-    { title: 'Categories', href: '/categories', active: false }
+    { title: 'Home', href: '/', active: pathname === '/' },
+    { title: 'Latest', href: '/latest', active: pathname === '/latest' },
+    { title: 'Trending', href: '/trending', active: pathname === '/trending' },
+    { title: 'Categories', href: '/categories', active: pathname === '/categories' }
   ];
-
-  const DesktopSearch = () => (
-    <div className="hidden lg:flex items-center gap-4">
-      {isSearchOpen ? (
-        <>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="py-2 px-4 border-b-2 border-blue-500 outline-none transition-all"
-            autoFocus
-          />
-          <button
-            aria-label="Close search"
-            onClick={() => {
-              setIsSearchOpen(false);
-              setSearchQuery('');
-            }}
-            className="text-gray-400 hover:text-blue-600"
-          >
-            <TbX className="text-xl" />
-          </button>
-        </>
-      ) : (
-        <>
-          <button
-            aria-label="Open search"
-            onClick={() => setIsSearchOpen(true)}
-            className="text-gray-400 hover:text-blue-600"
-          >
-            <TbSearch className="text-xl" />
-          </button>
-          {!user ? (
-            <>
-              <Link className="lg:inline-block lg:ml-auto lg:mr-3 py-2 px-6 bg-gray-50 hover:bg-gray-100 text-sm text-gray-900 font-bold rounded-xl transition duration-200" href="/sign-in">
-                Sign In
-              </Link>
-              <Link className="lg:inline-block py-2 px-6 bg-blue-500 hover:bg-blue-600 text-sm text-white font-bold rounded-xl transition duration-200" href="/sign-up">
-                Sign up
-              </Link>
-            </>
-          ) : (
-            <div className="relative ml-auto">
-              <button 
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 focus:outline-none"
-              >
-                <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 relative bg-gray-100">
-                  <Image src={user.avatar_url || user.user_metadata?.avatar_url || "/user.webp"} alt="Avatar" fill className="object-cover" />
-                </div>
-              </button>
-              
-              {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2">
-                  <div className="px-4 py-2 border-b border-gray-100 mb-2">
-                    <p className="text-sm font-medium text-gray-900 truncate">{user.user_metadata?.username || user.email}</p>
-                  </div>
-                  <Link href={`/@${user.user_metadata?.username || 'user'}`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</Link>
-                  <Link href={`/@${user.user_metadata?.username || 'user'}/write`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Write Article</Link>
-                  <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Settings</Link>
-                  <button onClick={() => logout()} className="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 mt-2 border-t border-gray-100">Sign out</button>
-                </div>
-              )}
-            </div>
-          )}
-          <button
-            aria-label="Toggle Dark/Light mode"
-            title="Toggle Dark/Light mode"
-            className="cursor-pointer text-xl ml-2 -mr-2"
-            onClick={() => dispatch(toggleTheme())}
-          >
-            {darkMode ? <FiSun /> : <MdDarkMode />}
-          </button>
-        </>
-      )}
-    </div>
-  );
-
-  const Logo = () => (
-    <svg className="h-10" viewBox="0 0 10240 10240">
-      <path xmlns="http://www.w3.org/2000/svg" d="M8284 9162 c-2 -207 -55 -427 -161 -667 -147 -333 -404 -644 -733 -886 -81 -59 -247 -169 -256 -169 -3 0 -18 -9 -34 -20 -26 -19 -344 -180 -354 -180 -3 0 -29 -11 -58 -24 -227 -101 -642 -225 -973 -290 -125 -25 -397 -70 -480 -80 -22 -3 -76 -9 -120 -15 -100 -13 -142 -17 -357 -36 -29 -2 -98 -7 -153 -10 -267 -15 -436 -28 -525 -40 -14 -2 -45 -7 -70 -10 -59 -8 -99 -14 -130 -20 -14 -3 -41 -7 -60 -11 -19 -3 -39 -7 -45 -8 -5 -2 -28 -6 -50 -10 -234 -45 -617 -165 -822 -257 -23 -10 -45 -19 -48 -19 -7 0 -284 -138 -340 -170 -631 -355 -1107 -842 -1402 -1432 -159 -320 -251 -633 -308 -1056 -26 -190 -27 -635 -1 -832 3 -19 7 -59 10 -89 4 -30 11 -84 17 -120 6 -36 12 -77 14 -91 7 -43 33 -174 39 -190 3 -8 7 -28 9 -45 6 -35 52 -221 72 -285 7 -25 23 -79 35 -120 29 -99 118 -283 189 -389 67 -103 203 -244 286 -298 75 -49 178 -103 196 -103 16 0 27 16 77 110 124 231 304 529 485 800 82 124 153 227 157 230 3 3 28 36 54 74 116 167 384 497 546 671 148 160 448 450 560 542 14 12 54 45 90 75 88 73 219 172 313 238 42 29 77 57 77 62 0 5 -13 34 -29 66 -69 137 -149 405 -181 602 -7 41 -14 82 -15 90 -1 8 -6 46 -10 83 -3 37 -8 77 -10 88 -2 11 -7 65 -11 122 -3 56 -8 104 -9 107 -2 3 0 12 5 19 6 10 10 8 15 -10 10 -34 167 -346 228 -454 118 -210 319 -515 340 -515 4 0 40 18 80 40 230 128 521 255 787 343 118 40 336 102 395 113 28 5 53 11 105 23 25 5 59 12 75 15 17 3 41 8 55 11 34 7 274 43 335 50 152 18 372 29 565 29 194 0 481 -11 489 -19 2 -3 -3 -6 -12 -6 -9 -1 -20 -2 -24 -3 -33 -8 -73 -16 -98 -21 -61 -10 -264 -56 -390 -90 -649 -170 -1243 -437 -1770 -794 -60 -41 -121 -82 -134 -93 l-24 -18 124 -59 c109 -52 282 -116 404 -149 92 -26 192 -51 220 -55 17 -3 64 -12 105 -21 71 -14 151 -28 230 -41 19 -3 46 -7 60 -10 14 -2 45 -7 70 -10 25 -4 56 -8 70 -10 14 -2 53 -7 88 -10 35 -4 71 -8 81 -10 10 -2 51 -6 92 -9 101 -9 141 -14 147 -21 3 -3 -15 -5 -39 -6 -24 0 -52 -2 -62 -4 -21 -4 -139 -12 -307 -22 -242 -14 -700 -7 -880 13 -41 4 -187 27 -250 39 -125 23 -274 68 -373 111 -43 19 -81 34 -86 34 -4 0 -16 -8 -27 -17 -10 -10 -37 -33 -59 -52 -166 -141 -422 -395 -592 -586 -228 -257 -536 -672 -688 -925 -21 -36 -43 -66 -47 -68 -4 -2 -8 -7 -8 -11 0 -5 -24 -48 -54 -97 -156 -261 -493 -915 -480 -935 2 -3 47 -21 101 -38 54 -18 107 -36 118 -41 58 -25 458 -138 640 -181 118 -27 126 -29 155 -35 14 -2 45 -9 70 -14 66 -15 137 -28 300 -55 37 -7 248 -33 305 -39 28 -3 84 -9 125 -13 163 -16 792 -8 913 12 12 2 58 9 102 15 248 35 423 76 665 157 58 19 134 46 170 60 86 33 344 156 348 166 2 4 8 7 13 7 14 0 205 116 303 184 180 126 287 216 466 396 282 281 511 593 775 1055 43 75 178 347 225 455 100 227 236 602 286 790 59 220 95 364 120 485 6 28 45 245 50 275 2 14 7 41 10 60 3 19 8 49 10 65 2 17 6 46 9 65 15 100 35 262 40 335 3 39 8 89 10 112 22 225 33 803 21 1043 -3 41 -7 129 -11 195 -3 66 -8 136 -10 155 -2 19 -6 76 -10 125 -3 50 -8 101 -10 115 -2 14 -6 57 -10 95 -7 72 -12 113 -20 175 -2 19 -7 55 -10 80 -6 46 -43 295 -51 340 -2 14 -9 54 -15 90 -5 36 -16 97 -24 135 -8 39 -17 84 -20 100 -12 68 -18 97 -50 248 -19 87 -47 204 -61 260 -14 56 -27 109 -29 117 -30 147 -232 810 -253 832 -4 4 -7 -23 -8 -60z"></path>
-    </svg>
-  );
-
-  const Divider = () => (
-    <svg className="w-4 h-4 current-fill" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v0m0 7v0m0 7v0m0-13a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-    </svg>
-  );
 
   return (
     <>
-      <nav 
-      className=" shadow px-[4%] py-4 flex justify-between items-center bg-white sticky top-0 z-[999]">
-        <a className="text-3xl font-bold leading-none" href="/">
-          <Logo />
-        </a>
-        {/* Mobile Burger Button */}
-        <div className="flex lg:hidden items-center gap-4">
-          <button
-            aria-label="Toggle search"
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className="text-gray-400 hover:text-blue-600"
-          >
-            {isSearchOpen ? (
-              <TbX className="text-2xl" />
-            ) : (
-              <TbSearch className="text-2xl" />
-            )}
-          </button>
-          {
-            !isMenuOpen ?
-            <button
-            aria-label="Open mobile menu"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="navbar-burger flex items-center text-blue-600 p-3"
-          >
-            <svg className="block h-5 w-5 fill-current" viewBox="0 0 20 20">
-              <title>Mobile menu</title>
-              <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z"></path>
-            </svg>
-          </button> : <button
-            aria-label="Close mobile menu"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="navbar-burger flex items-center text-blue-600 p-3"
-          >
-            <TbX size={24} className="block fill-current" />
-          </button>
-          }
-        </div>
+      <nav className="nav-divided">
+        <Link href="/" className="logo">PLYNT.</Link>
 
-        {/* Desktop Navigation */}
-        <ul className="hidden absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2 lg:flex lg:mx-auto lg:items-center lg:w-auto lg:space-x-6">
-          {navLinks.map((link, index) => (
-            <React.Fragment key={link.title}>
-              <li>
-                <Link
-                  href={link.href}
-                  className={`text-sm ${
-                    pathname === link.href
-                      ? "text-blue-600 font-bold"
-                      : "text-gray-400 hover:text-blue-600"
-                  }`}
-                >
-                  {link.title}
-                </Link>
-              </li>
-              {index !== navLinks.length - 1 && (
-                <li className="text-gray-300">
-                  <Divider />
-                </li>
-              )}
-            </React.Fragment>
-          ))}
-
-          {/* Separator and Write Link */}
-          <li className="text-gray-300">
-            <Divider />
-          </li>
-          <li className="ml-2">
+        <div className="links">
+          {navLinks.map((link) => (
             <Link
-              href={user ? `/@${user.user_metadata?.username || 'user'}/write` : '/sign-in'}
-              className="text-sm flex items-center gap-1.5 text-blue-500 hover:text-blue-600 transition-colors group pt-[5px] border-t border-b border-blue-400 rounded-[4px] px-1"
-            >
-              <span className="relative pb-1">
-                Write
-                {/* <span className="absolute bottom-0 left-0 w-full h-px bg-blue-400 opacity-50 group-hover:bg-blue-500 transition-colors" /> */}
-              </span>
-              <TbEdit className="text-[0.95em] translate-y-[1px] text-blue-400 group-hover:text-blue-500 group-hover:translate-y-[-1px] transition-all" />
-            </Link>
-          </li>
-        </ul>
-
-        {/* Desktop Buttons */}
-        <div className="hidden lg:flex items-center">
-          <DesktopSearch />
-        </div>
-      </nav>
-
-{/* Mobile Search (visible above menu) */}
-{isSearchOpen && (
-  <div className="lg:hidden px-4 mb-3">
-    <div className="relative">
-      <input
-        type="text"
-        placeholder="Search articles..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full py-2.5 pl-10 pr-4 rounded-lg bg-gray-100 focus:bg-white border border-gray-200 focus:border-blue-500 outline-none transition"
-        autoFocus
-      />
-      <svg
-        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M21 21l-4.35-4.35M9.5 17a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"
-        />
-      </svg>
-    </div>
-  </div>
-)}
-
-{/* Slide-out Mobile Menu */}
-{isMenuOpen && (
-  <div className={`fixed inset-0 z-[999999]`}>
-    {/* Backdrop */}
-    <div
-      className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-      onClick={() => setIsMenuOpen(false)}
-    ></div>
-
-    {/* Sidebar */}
-    <nav className="fixed top-0 left-0 bottom-0 w-4/5 max-w-sm bg-white shadow-xl border-r border-gray-200 flex flex-col p-6 animate-slide-in">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/" className="text-2xl font-bold text-gray-800">
-          <Logo />
-        </Link>
-        <button
-          aria-label="Close mobile menu"
-          onClick={() => setIsMenuOpen(false)}
-          className="text-gray-400 hover:text-gray-600 transition"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      </div>
-
-      {/* Nav Links */}
-      <ul className="space-y-2">
-        {navLinks.map((link) => (
-          <li key={link.title}>
-            <Link
+              key={link.title}
               href={link.href}
-              onClick={() => setTimeout(() => setIsMenuOpen(false), 100)}
-              className="block px-4 py-2 rounded-lg text-gray-600 hover:bg-blue-50 hover:text-blue-600 font-medium transition"
+              className={`link ${link.active ? 'active' : ''}`}
             >
               {link.title}
             </Link>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
 
-      {/* Footer (Sign in/Up + Copyright) */}
-      <div className="mt-auto pt-6 border-t border-gray-100">
-        <div className="space-y-3">
-          <Link
-            href="/sign-in"
-            className="block text-center px-4 py-2 rounded-lg font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/sign-up"
-            className="block text-center px-4 py-2 rounded-lg font-semibold text-white bg-blue-600 hover:bg-blue-700 transition"
-          >
-            Sign up
+        <div className="actions">
+          <div className="action-item" onClick={() => setIsSearchOpen(!isSearchOpen)}>
+            <TbSearch size={18} />
+            Search
+          </div>
+
+          {user ? (
+            <div className="action-item pfp" style={{ position: 'relative' }} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}>
+              <div style={{ width: '32px', height: '32px', overflow: 'hidden', position: 'relative' }}>
+                <Image src={user.avatar_url || user.user_metadata?.avatar_url || "/user.webp"} alt="Avatar" fill style={{ objectFit: 'cover' }} />
+              </div>
+              {/* Profile */}
+
+              {isProfileDropdownOpen && (
+                <div style={{ position: 'absolute', top: '100%', right: '0', background: '#fff', border: '2px solid #111', borderTop: 'none', zIndex: 100, display: 'flex', flexDirection: 'column', width: '200px' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '2px solid #111', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase' }}>{user.user_metadata?.username || user.email}</div>
+                  <Link href={`/@${user.user_metadata?.username || 'user'}`} className="action-item" style={{ borderLeft: 'none', padding: '16px' }}>Profile</Link>
+                  <Link href="/settings" className="action-item" style={{ borderLeft: 'none', padding: '16px', borderTop: '1px solid #E4E4E7' }}>Settings</Link>
+                  <button onClick={() => logout()} className="action-item" style={{ borderLeft: 'none', padding: '16px', borderTop: '1px solid #E4E4E7', color: 'red' }}>Sign out</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link href="/sign-in" className="action-item">Sign In</Link>
+          )}
+
+          <Link href={user ? `/@${user.user_metadata?.username || 'user'}/write` : '/sign-in'} className="action-item write-btn">
+            Write
           </Link>
         </div>
-        <p className="text-xs text-gray-400 text-center mt-4">
-          © {new Date().getFullYear()} YourBlog
-        </p>
-      </div>
-    </nav>
-  </div>
-)}
-<style jsx>
-{
-  `
-  @keyframes slide-in {
-  from {
-    transform: translateX(-100%);
-    opacity: 0.4;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-.animate-slide-in {
-  animation: slide-in 0.2s ease-out forwards;
-}
-  `
-}
-</style>
+      </nav>
 
+      {/* Command Palette Search Overlay */}
+      {isSearchOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '15vh', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)' }} onClick={() => setIsSearchOpen(false)}>
+          <div style={{ width: '100%', maxWidth: '600px', background: '#fff', border: '3px solid #111', boxShadow: '8px 8px 0 rgba(0,0,0,1)', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
+            <form onSubmit={handleSearchSubmit} style={{ display: 'flex', borderBottom: searchResults.length > 0 || searchQuery.trim().length > 0 ? '2px solid #111' : 'none' }}>
+              <button type="submit" style={{ padding: '16px', display: 'flex', alignItems: 'center', color: '#111', background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Search">
+                <TbSearch size={24} />
+              </button>
+              <input
+                type="search"
+                placeholder="Search articles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ flex: 1, padding: '16px 16px 16px 0', border: 'none', outline: 'none', fontWeight: 700, fontSize: '18px', color: '#111', background: 'transparent' }}
+                autoFocus
+              />
+              <button type="button" onClick={() => setIsSearchOpen(false)} style={{ padding: '16px', borderLeft: '2px solid #111', background: '#fff', cursor: 'pointer', color: '#111' }}>
+                <TbX size={24} />
+              </button>
+            </form>
+
+            {/* Live Dropdown Results */}
+            {searchResults.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '300px', overflowY: 'auto' }}>
+                {searchResults.map((post) => (
+                  <Link 
+                    key={post.id} 
+                    href={`/@${post.profiles?.username || 'user'}/${post.slug}`}
+                    onClick={() => setIsSearchOpen(false)}
+                    style={{ padding: '16px', borderBottom: '1px solid #E4E4E7', textDecoration: 'none', color: '#111', display: 'flex', alignItems: 'center', gap: '12px' }}
+                  >
+                    <TbSearch size={16} style={{ color: '#666' }} />
+                    <div style={{ fontWeight: 700, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {post.title}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+            
+            {searchQuery.trim().length > 0 && searchResults.length === 0 && (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#666', fontWeight: 600 }}>
+                No results found for "{searchQuery}"
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };
